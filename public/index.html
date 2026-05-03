@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Smart Elevator Monitor — Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+  <!-- ── Connection Banner ─────────────────────────────────────────────────── -->
+  <div class="connection-banner conn-hidden" id="conn-banner"></div>
+
+  <!-- ── Header ────────────────────────────────────────────────────────────── -->
+  <header class="header">
+    <div class="header-brand">
+      <div class="brand-icon">🛗</div>
+      <div>
+        <h1 class="brand-title">Smart Elevator Monitor</h1>
+        <p class="brand-sub">Real-Time IoT Dashboard — STM32 + ESP8266</p>
+      </div>
+    </div>
+
+    <nav class="nav">
+      <a href="index.html" class="nav-link active">Dashboard</a>
+      <a href="logs.html"  class="nav-link">Alert Logs</a>
+    </nav>
+
+    <div class="header-right">
+      <div class="clock" id="clock">00:00:00</div>
+      <span class="status-badge badge-normal" id="header-status-badge">Normal</span>
+    </div>
+  </header>
+
+  <!-- ── Main ──────────────────────────────────────────────────────────────── -->
+  <main class="main">
+
+    <!-- Sensor Cards ─────────────────────────────────────────────────────── -->
+    <section class="sensor-grid">
+
+      <!-- Temperature -->
+      <div class="sensor-card card-normal fade-in" id="temp-card">
+        <div class="sensor-card-header">
+          <span class="sensor-icon">🌡️</span>
+          <span class="sensor-label">Temperature</span>
+        </div>
+        <div class="sensor-value-row">
+          <span class="sensor-value" id="temp-value">--</span>
+          <span class="sensor-unit">°C</span>
+        </div>
+        <div class="sensor-sub" id="temp-sub">DHT11 Sensor</div>
+      </div>
+
+      <!-- Smoke / Gas -->
+      <div class="sensor-card card-normal fade-in" id="smoke-card">
+        <div class="sensor-card-header">
+          <span class="sensor-icon">💨</span>
+          <span class="sensor-label">Smoke / Gas</span>
+        </div>
+        <div class="sensor-value-row">
+          <span class="sensor-value" id="smoke-value">--</span>
+          <span class="sensor-unit">raw</span>
+        </div>
+        <div class="sensor-sub" id="smoke-sub">MQ2 Sensor</div>
+      </div>
+
+      <!-- Weight / Load -->
+      <div class="sensor-card card-normal fade-in" id="weight-card">
+        <div class="sensor-card-header">
+          <span class="sensor-icon">⚖️</span>
+          <span class="sensor-label">Load / Weight</span>
+        </div>
+        <div class="sensor-value-row">
+          <span class="sensor-value" id="weight-value">--</span>
+          <span class="sensor-unit">kg</span>
+        </div>
+        <div class="sensor-sub" id="weight-sub">HX711 + Load Cell</div>
+      </div>
+
+      <!-- Distance / Floor -->
+      <div class="sensor-card card-normal fade-in" id="distance-card">
+        <div class="sensor-card-header">
+          <span class="sensor-icon">📏</span>
+          <span class="sensor-label">Distance / Floor</span>
+        </div>
+        <div class="sensor-value-row">
+          <span class="sensor-value" id="distance-value">--</span>
+          <span class="sensor-unit">cm</span>
+        </div>
+        <div class="sensor-sub" id="floor-display">VL53L0X TOF Sensor</div>
+      </div>
+
+    </section>
+
+    <!-- Status Banner ────────────────────────────────────────────────────── -->
+    <section>
+      <div class="status-banner status-normal fade-in" id="status-banner">
+        <div class="status-banner-icon" id="status-icon">✅</div>
+        <div class="status-banner-content">
+          <div class="status-banner-title" id="status-title">SYSTEM NORMAL</div>
+          <div class="status-banner-desc"  id="status-desc">All sensors reading within safe thresholds</div>
+        </div>
+        <div class="status-banner-time" id="last-updated">Connecting to Firebase...</div>
+      </div>
+    </section>
+
+    <!-- Monitoring: Chart + Elevator ────────────────────────────────────── -->
+    <section class="monitoring-grid">
+
+      <!-- Live Chart -->
+      <div class="card chart-card fade-in">
+        <div class="card-header">
+          <h2 class="card-title">📊 Live Sensor Readings</h2>
+          <span class="card-sub" id="chart-count">Last 50 readings</span>
+        </div>
+        <div class="chart-container">
+          <canvas id="sensor-chart"></canvas>
+        </div>
+      </div>
+
+      <!-- Elevator Visual -->
+      <div class="card elevator-card fade-in">
+        <div class="card-header">
+          <h2 class="card-title">🛗 Elevator Position</h2>
+          <span class="card-sub" id="elev-status-sub">Waiting...</span>
+        </div>
+
+        <div class="elevator-visual">
+          <!-- Floor labels -->
+          <div class="shaft-labels">
+            <div class="shaft-fl-label">Floor 2</div>
+            <div class="shaft-fl-label">Floor 1</div>
+            <div class="shaft-fl-label">Ground</div>
+          </div>
+
+          <!-- Shaft -->
+          <div class="shaft-body">
+            <div class="shaft-inner" id="shaft-inner">
+              <!-- dividers at 33% and 66% from top -->
+              <div class="shaft-divider" style="top:33.33%"></div>
+              <div class="shaft-divider" style="top:66.66%"></div>
+              <!-- Elevator car (positioned from bottom) -->
+              <div class="elevator-car car-normal" id="elevator-car" style="bottom:8px;">🛗</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="elevator-info">
+          <div class="elev-info-row">
+            <span class="elev-info-label">Current Floor</span>
+            <span class="elev-info-value" id="floor-label">--</span>
+          </div>
+          <div class="elev-info-row">
+            <span class="elev-info-label">Movement</span>
+            <span class="elev-info-value" id="moving-status">--</span>
+          </div>
+          <div class="elev-info-row">
+            <span class="elev-info-label">Distance</span>
+            <span class="elev-info-value" id="elev-dist">-- cm</span>
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- Recent Alerts ────────────────────────────────────────────────────── -->
+    <section>
+      <div class="card fade-in">
+        <div class="card-header">
+          <h2 class="card-title">🚨 Recent Alerts</h2>
+          <a href="logs.html" class="btn-link">View All Logs →</a>
+        </div>
+        <div id="recent-alerts">
+          <div class="loading">
+            <div class="spinner"></div>
+            <p>Connecting to Firebase...</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="footer">
+    Smart Elevator Monitoring System &copy; 2024 — IoT Prototype | STM32 Black Pill + ESP8266
+  </footer>
+
+  <!-- Chart.js (global UMD — must come before the module script) -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+  <!-- Dashboard logic (ES module) -->
+  <script type="module" src="js/dashboard.js"></script>
+
+</body>
+</html>

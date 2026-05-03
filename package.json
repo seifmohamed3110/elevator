@@ -1,0 +1,8 @@
+{
+  "dependencies": {
+    "firebase": "^12.12.1"
+  },
+  "devDependencies": {
+    "supabase": "^2.98.0"
+  }
+}

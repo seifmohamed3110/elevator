@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Smart Elevator Monitor — Alert Logs</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+  <!-- ── Header ────────────────────────────────────────────────────────────── -->
+  <header class="header">
+    <div class="header-brand">
+      <div class="brand-icon">🛗</div>
+      <div>
+        <h1 class="brand-title">Smart Elevator Monitor</h1>
+        <p class="brand-sub">Real-Time IoT Dashboard — STM32 + ESP8266</p>
+      </div>
+    </div>
+
+    <nav class="nav">
+      <a href="index.html" class="nav-link">Dashboard</a>
+      <a href="logs.html"  class="nav-link active">Alert Logs</a>
+    </nav>
+
+    <div class="header-right">
+      <div class="clock" id="clock">00:00:00</div>
+    </div>
+  </header>
+
+  <!-- ── Main ──────────────────────────────────────────────────────────────── -->
+  <main class="main">
+
+    <!-- Page Header ─────────────────────────────────────────────────────── -->
+    <div class="page-header fade-in">
+      <h2 class="page-title">🚨 Alert Logs</h2>
+      <p class="page-sub">Complete history of all detected elevator conditions and alerts.</p>
+    </div>
+
+    <!-- Stats Row ───────────────────────────────────────────────────────── -->
+    <div class="card fade-in">
+      <div class="stats-row">
+        <div class="stat-item">
+          <span class="stat-value" id="stat-total">--</span>
+          <span class="stat-label">Total Alerts</span>
+        </div>
+        <div class="stat-item stat-warning">
+          <span class="stat-value" id="stat-warning">--</span>
+          <span class="stat-label">Warnings</span>
+        </div>
+        <div class="stat-item stat-danger">
+          <span class="stat-value" id="stat-danger">--</span>
+          <span class="stat-label">Danger</span>
+        </div>
+        <div class="stat-item stat-critical">
+          <span class="stat-value" id="stat-critical">--</span>
+          <span class="stat-label">Critical</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-value" id="stat-unack">--</span>
+          <span class="stat-label">Unacknowledged</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Filter + Table ──────────────────────────────────────────────────── -->
+    <div class="card fade-in">
+
+      <!-- Filter Bar -->
+      <div class="filter-bar">
+        <span class="filter-label">Filter:</span>
+
+        <select class="filter-select" id="filter-type" onchange="applyFilters()">
+          <option value="all">All Types</option>
+          <option value="warning">Warning</option>
+          <option value="danger">Danger</option>
+          <option value="critical">Critical</option>
+        </select>
+
+        <select class="filter-select" id="filter-category" onchange="applyFilters()">
+          <option value="all">All Categories</option>
+          <option value="temperature">Temperature</option>
+          <option value="smoke">Smoke</option>
+          <option value="overload">Overload</option>
+          <option value="stuck">Stuck</option>
+        </select>
+
+        <select class="filter-select" id="filter-ack" onchange="applyFilters()">
+          <option value="all">All Status</option>
+          <option value="false">Unacknowledged</option>
+          <option value="true">Acknowledged</option>
+        </select>
+
+        <div class="filter-divider"></div>
+
+        <button class="btn btn-ghost btn-sm" onclick="loadAlerts()">↻ Refresh</button>
+        <span class="card-sub" id="result-count"></span>
+      </div>
+
+      <!-- Table -->
+      <div class="table-container" id="table-container">
+        <div class="loading">
+          <div class="spinner"></div>
+          <p>Loading alerts from Supabase...</p>
+        </div>
+      </div>
+
+    </div>
+
+  </main>
+
+  <footer class="footer">
+    Smart Elevator Monitoring System &copy; 2024 — IoT Prototype | STM32 Black Pill + ESP8266
+  </footer>
+
+  <script type="module" src="js/logs.js"></script>
+
+</body>
+</html>

@@ -1,0 +1,4 @@
+project_id = "YOUR_SUPABASE_PROJECT_ID"
+
+[functions.process-reading]
+verify_jwt = false
