@@ -1,7 +1,9 @@
 {
   "permissions": {
     "allow": [
-      "PowerShell(Get-ChildItem -Recurse \"d:\\\\SAMS\\\\4th Year\\\\GEZA project\" | Where-Object { !$_.PSIsContainer } | ForEach-Object { $_.FullName.Replace\\(\"d:\\\\SAMS\\\\4th Year\\\\GEZA project\\\\\", \"\"\\) })"
+      "PowerShell(Get-ChildItem -Recurse \"d:\\\\SAMS\\\\4th Year\\\\GEZA project\" | Where-Object { !$_.PSIsContainer } | ForEach-Object { $_.FullName.Replace\\(\"d:\\\\SAMS\\\\4th Year\\\\GEZA project\\\\\", \"\"\\) })",
+      "PowerShell(code --install-extension denoland.vscode-deno)",
+      "PowerShell(code --reuse-window \"C:\\\\Users\\\\LENOVO\\\\Documents\\\\elevator\")"
     ]
   }
 }
