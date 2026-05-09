@@ -90,8 +90,8 @@ function buildHtml(alert: AlertInfo, reading: ReadingSnapshot): string {
  * Returns true if the email was sent successfully.
  */
 export async function sendAlertEmail(alert: AlertInfo, reading: ReadingSnapshot): Promise<boolean> {
-const apiKey = Deno.env.get('RESEND_API_KEY') ?? 're_7gNV4NED_HRBuLGfCaCq8jLgaPsXPd31B';
-const to     = Deno.env.get('ALERT_EMAIL_TO')  ?? 'elevatoralert1@gmail.com';
+const apiKey = Deno.env.get('RESEND_API_KEY') ?? 're_fMaEJRex_376mzKZgkAAw3E6vg631inaU';
+const to     = Deno.env.get('ALERT_EMAIL_TO')  ?? 'amiryomo10@gmail.com';
 
   const category = alert.category.charAt(0).toUpperCase() + alert.category.slice(1);
 
