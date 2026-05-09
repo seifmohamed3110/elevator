@@ -90,13 +90,8 @@ function buildHtml(alert: AlertInfo, reading: ReadingSnapshot): string {
  * Returns true if the email was sent successfully.
  */
 export async function sendAlertEmail(alert: AlertInfo, reading: ReadingSnapshot): Promise<boolean> {
-  const apiKey = Deno.env.get('re_UKqtoDJU_3WRtNBp4q78Ni38S4qubVsQd');
-  const to     = Deno.env.get('elevatorwebsite@gmail.com');
-
-  if (!apiKey || !to) {
-    console.warn('Email not configured — set RESEND_API_KEY and ALERT_EMAIL_TO in Supabase Edge Function secrets.');
-    return false;
-  }
+  const apiKey = Deno.env.get('RESEND_API_KEY') ?? 're_UKqtoDJU_3WRtNBp4q78Ni38S4qubVsQd';
+  const to     = Deno.env.get('ALERT_EMAIL_TO')  ?? 'elevatorwebsite@gmail.com';
 
   const category = alert.category.charAt(0).toUpperCase() + alert.category.slice(1);
 
