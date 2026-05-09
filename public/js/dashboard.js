@@ -127,12 +127,12 @@ function updateSensorCards(row) {
   const { temperature: t, smoke_level: s, weight: w, distance: d, floor } = row;
 
   el.tempValue.textContent   = t != null ? t.toFixed(1)  : '--';
-  el.smokeValue.textContent  = s != null ? s.toFixed(0)  : '--';
+  el.smokeValue.textContent  = s != null ? (s > 0 ? 'DETECTED' : 'CLEAR') : '--';
   el.weightValue.textContent = w != null ? w.toFixed(1)  : '--';
   el.distValue.textContent   = d != null ? d.toFixed(1)  : '--';
 
   if (t != null) el.tempSub.textContent   = t > 60 ? '⚠️ Critically high' : t > 40 ? '⚠️ Elevated' : 'Safe range';
-  if (s != null) el.smokeSub.textContent  = s > 300 ? '⚠️ Smoke detected' : 'No smoke';
+  if (s != null) el.smokeSub.textContent  = s > 0 ? '⚠️ Gas detected' : 'No gas';
   if (w != null) el.weightSub.textContent = w > 150 ? '⚠️ Overloaded!'   : `${Math.round((w / 150) * 100)}% capacity`;
   el.floorDisplay.textContent = `Floor: ${floorName(floor)}`;
 
