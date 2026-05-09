@@ -10,7 +10,7 @@ const THRESHOLDS = {
   OVERLOAD_DURATION_MS: 5_000,
   STUCK_TOLERANCE_CM:   2,
   STUCK_DURATION_MS:    30_000,
-  ALERT_COOLDOWN_MS:    0,
+  ALERT_COOLDOWN_MS:    20 * 1_000,
 } as const;
 
 export interface SensorReading {
