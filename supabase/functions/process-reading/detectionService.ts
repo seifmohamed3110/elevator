@@ -1,8 +1,8 @@
 // detectionService.ts — TypeScript port of the original Node.js detection logic
 
 const THRESHOLDS = {
-  TEMP_WARNING_C:       28,
-  TEMP_DANGER_C:        30,
+  TEMP_WARNING_C:       30,
+  TEMP_DANGER_C:        35,
   TEMP_DURATION_MS:     10_000,
   SMOKE_LEVEL:          300,
   SMOKE_DURATION_MS:    10_000,
