@@ -24,7 +24,7 @@ const CATEGORY_ICON = {
 };
 
 // Elevator car bottom positions (px) for each floor (shaft height ~260px, car 70px)
-const FLOOR_BOTTOM_PX = { 0: 8, 1: 101, 2: 194 };
+const FLOOR_BOTTOM_PX = { 1: 8, 2: 101, 3: 194 };
 
 // ── DOM refs ──────────────────────────────────────────────────────────────────
 const el = {
