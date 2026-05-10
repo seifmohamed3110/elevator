@@ -1,5 +1,7 @@
 // detectionService.ts — TypeScript port of the original Node.js detection logic
 
+import { sendAlertEmail } from './emailService.ts';
+
 const THRESHOLDS = {
   TEMP_WARNING_C:       28,
   TEMP_DANGER_C:        32,
@@ -9,9 +11,43 @@ const THRESHOLDS = {
   OVERLOAD_KG:          150,
   OVERLOAD_DURATION_MS: 5_000,
   STUCK_TOLERANCE_CM:   5,
-  STUCK_DURATION_MS:    20_000,
+  STUCK_DURATION_MS:    5_000,
   ALERT_COOLDOWN_MS:    20 * 1_000,
 } as const;
+
+/**
+ * Valid floor positions (in cm).
+ * If the elevator's distance reading falls inside one of these ranges,
+ * it is considered to be safely AT that floor — NOT stuck.
+ * Any distance outside ALL of these ranges means the elevator is
+ * between floors and should trigger stuck detection if stationary.
+ *
+ * Layout:
+ *   Ground floor : 0    cm –  5.5 cm   (floor 0)
+ *   1st floor    : 5.5  cm –  7.5 cm   (floor 1)
+ *   2nd floor    : 18.5 cm – 20.5 cm   (floor 2)
+ *   3rd floor    : 29   cm – 31   cm   (floor 3)
+ */
+const FLOOR_RANGES: ReadonlyArray<{ floor: number; min: number; max: number; label: string }> = [
+  { floor: 0, min:  0.0, max:  5.4, label: 'Ground floor' },
+  { floor: 1, min:  5.5, max:  7.5, label: '1st floor'    },
+  { floor: 2, min: 18.5, max: 20.5, label: '2nd floor'    },
+  { floor: 3, min: 29.0, max: 31.0, label: '3rd floor'    },
+];
+
+/**
+ * Returns the floor number if `distance` is within a known floor range,
+ * or -1 if the elevator is between floors (i.e. stuck candidate).
+ */
+function getFloorFromDistance(distance: number | null): number {
+  if (distance == null) return -1;
+  for (const range of FLOOR_RANGES) {
+    if (distance >= range.min && distance <= range.max) {
+      return range.floor;
+    }
+  }
+  return -1; // between floors → stuck
+}
 
 export interface SensorReading {
   temperature: number | null;
@@ -47,7 +83,7 @@ export interface FloorRange {
 export interface EvaluateResult {
   alerts:       AlertEntry[];
   updatedState: DetectionState;
-  status:       'normal' | 'warning' | 'danger' | 'critical';
+  status:       Status;
   floor:        number;
   is_moving:    boolean;
 }
@@ -61,6 +97,8 @@ export function getDefaultState(): DetectionState {
   };
 }
 
+// NOTE: computeFloor via external calibration is kept for any other callers,
+// but stuck detection now uses the built-in FLOOR_RANGES via getFloorFromDistance.
 function computeFloor(distance: number | null, calibration: Record<string, FloorRange>): number {
   if (distance == null) return -1;
   for (const [floorNum, range] of Object.entries(calibration)) {
@@ -76,15 +114,23 @@ function recentlyAlerted(entry: { last_alerted_at: number | null }, now: number)
   return (now - entry.last_alerted_at) < THRESHOLDS.ALERT_COOLDOWN_MS;
 }
 
-export function evaluate(
+type Status = 'normal' | 'warning' | 'danger' | 'critical';
+const SEVERITY: Record<Status, number> = { normal: 0, warning: 1, danger: 2, critical: 3 };
+
+/** Upgrades `current` to `next` only if `next` is more severe. */
+function escalate(current: Status, next: Status): Status {
+  return SEVERITY[next] > SEVERITY[current] ? next : current;
+}
+
+export async function evaluate(
   reading:     SensorReading,
   state:       DetectionState,
   calibration: Record<string, FloorRange>,
   now:         number,
-): EvaluateResult {
+): Promise<EvaluateResult> {
   const alerts: AlertEntry[] = [];
   const s: DetectionState = JSON.parse(JSON.stringify(state));
-  let status: 'normal' | 'warning' | 'danger' | 'critical' = 'normal';
+  let status: Status = 'normal';
 
   const { temperature: temp, smoke_level: smoke, weight, distance: dist } = reading;
 
@@ -100,8 +146,7 @@ export function evaluate(
         : { type: 'warning', category: 'temperature', message: `Temperature elevated: ${temp.toFixed(1)} °C (threshold: ${THRESHOLDS.TEMP_WARNING_C} °C)` });
       s.temperature.last_alerted_at = now;
     }
-    if (isDanger && status !== 'critical') status = 'danger';
-    else if (status === 'normal') status = 'warning';
+    status = escalate(status, isDanger ? 'danger' : 'warning');
   } else {
     s.temperature.abnormal_since = null;
   }
@@ -118,16 +163,15 @@ export function evaluate(
       if (tempElevated) {
         alerts.push({ type: 'critical', category: 'smoke',
           message: `Fire hazard! Smoke: ${smoke!.toFixed(0)} + temperature: ${temp!.toFixed(1)} °C` });
-        status = 'critical';
+        status = escalate(status, 'critical');
       } else {
         alerts.push({ type: 'danger', category: 'smoke',
           message: `Smoke / gas detected! Level: ${smoke!.toFixed(0)} (threshold: ${THRESHOLDS.SMOKE_LEVEL})` });
-        if (status !== 'critical') status = 'danger';
+        status = escalate(status, 'danger');
       }
       s.smoke.last_alerted_at = now;
     }
-    if (smokeHigh && tempElevated) status = 'critical';
-    else if (status !== 'critical') status = 'danger';
+    status = escalate(status, smokeHigh && tempElevated ? 'critical' : 'danger');
   } else {
     s.smoke.abnormal_since = null;
   }
@@ -142,38 +186,62 @@ export function evaluate(
         message: `Elevator overloaded! Weight: ${weight.toFixed(1)} kg (max: ${THRESHOLDS.OVERLOAD_KG} kg)` });
       s.overload.last_alerted_at = now;
     }
-    status = 'critical';
+    status = escalate(status, 'critical');
   } else {
     s.overload.abnormal_since = null;
   }
 
   // ── Stuck Between Floors ───────────────────────────────────────────────────
-  const floor          = computeFloor(dist, calibration);
+  //
+  // The elevator is considered AT a floor when its distance falls inside one
+  // of the FLOOR_RANGES defined above. Any reading outside ALL ranges means
+  // it is between floors — if it is also stationary there for longer than
+  // STUCK_DURATION_MS, a critical alert fires.
+  //
+  const floor           = getFloorFromDistance(dist); // -1 = between floors
   const isBetweenFloors = floor === -1;
-  const lastDist        = s.stuck.last_distance;
-  const isStationary    = lastDist != null && dist != null && Math.abs(dist - lastDist) <= THRESHOLDS.STUCK_TOLERANCE_CM;
-  const is_moving       = !isStationary;
+
+  const lastDist     = s.stuck.last_distance;
+  const isStationary =
+    lastDist != null &&
+    dist     != null &&
+    Math.abs(dist - lastDist) <= THRESHOLDS.STUCK_TOLERANCE_CM;
+  const is_moving = !isStationary;
 
   if (!isStationary) {
-    s.stuck.last_moved_at   = now;
-    s.stuck.abnormal_since  = null;
+    // Elevator moved — reset stuck tracking
+    s.stuck.last_moved_at  = now;
+    s.stuck.abnormal_since = null;
   }
   s.stuck.last_distance = dist ?? lastDist;
 
   if (isStationary && isBetweenFloors) {
+    // Stationary AND outside every valid floor range → stuck
     if (!s.stuck.abnormal_since) s.stuck.abnormal_since = now;
     const duration = now - s.stuck.abnormal_since!;
 
     if (duration >= THRESHOLDS.STUCK_DURATION_MS && !recentlyAlerted(s.stuck, now)) {
-      alerts.push({ type: 'critical', category: 'stuck',
-        message: `Elevator stuck between floors! Position: ${dist?.toFixed(1) ?? '?'} cm — stationary for ${Math.round(duration / 1000)} s` });
+      const stuckAlert: AlertEntry = {
+        type:     'critical',
+        category: 'stuck',
+        message:  `Elevator stuck between floors! Position: ${dist?.toFixed(1) ?? '?'} cm — stationary for ${Math.round(duration / 1_000)} s`,
+      };
+      alerts.push(stuckAlert);
       s.stuck.last_alerted_at = now;
-      status = 'critical';
+      status = escalate(status, 'critical');
+
+      // Send email notification — fire-and-forget, don't block the result
+      sendAlertEmail(stuckAlert, { ...reading, floor }).catch((err) =>
+        console.error('Failed to send stuck alert email:', err),
+      );
     }
+
+    // Escalate status as soon as the duration threshold is crossed
     if (s.stuck.abnormal_since && (now - s.stuck.abnormal_since) >= THRESHOLDS.STUCK_DURATION_MS) {
-      status = 'critical';
+      status = escalate(status, 'critical');
     }
-  } else if (!isBetweenFloors) {
+  } else {
+    // Moving, OR sitting inside a valid floor range → not stuck
     s.stuck.abnormal_since = null;
   }
 

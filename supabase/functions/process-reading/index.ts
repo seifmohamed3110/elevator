@@ -69,7 +69,7 @@ Deno.serve(async (req: Request) => {
     }
 
     // ── Run detection logic ────────────────────────────────────────────────
-    const { alerts, updatedState, status, floor, is_moving } = evaluate(
+    const { alerts, updatedState, status, floor, is_moving } = await evaluate(
       reading, state, calibration, now,
     );
 
