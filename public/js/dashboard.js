@@ -111,6 +111,7 @@ function pushChartPoint(row) {
 const tempClass   = t => t == null ? 'card-normal' : t > 32 ? 'card-danger'   : t > 28  ? 'card-warning'  : 'card-normal';
 const smokeClass  = s => s == null ? 'card-normal' : s > 400 ? 'card-critical' : s > 300  ? 'card-danger'   : 'card-normal';
 const weightClass = w => w == null ? 'card-normal' : w > 270 ? 'card-critical' : w > 243  ? 'card-warning'  : 'card-normal';
+const distClass   = (floor, moving) => (floor === -1 && moving === false) ? 'card-critical' : 'card-normal';
 
 function setCardClass(id, cls) {
   const card = document.getElementById(id);
@@ -124,7 +125,7 @@ function floorName(floor) {
 
 // ── Update sensor cards ───────────────────────────────────────────────────────
 function updateSensorCards(row) {
-  const { temperature: t, smoke_level: s, weight: w, distance: d, floor } = row;
+  const { temperature: t, smoke_level: s, weight: w, distance: d, floor, is_moving } = row;
 
   el.tempValue.textContent   = t != null ? t.toFixed(1)  : '--';
   el.smokeValue.textContent  = s != null ? (s > 0 ? 'DETECTED' : 'CLEAR') : '--';
@@ -134,12 +135,13 @@ function updateSensorCards(row) {
   if (t != null) el.tempSub.textContent   = t > 32 ? '⚠️ Critically high' : t > 28 ? '⚠️ Elevated' : 'Safe range';
   if (s != null) el.smokeSub.textContent  = s > 0 ? '⚠️ Gas detected' : 'No gas';
   if (w != null) el.weightSub.textContent = w > 270 ? '⚠️ Overloaded!'   : `${Math.round((w / 270) * 100)}% capacity`;
-  el.floorDisplay.textContent = `Floor: ${floorName(floor)}`;
+  const stuck = floor === -1 && is_moving === false;
+  el.floorDisplay.textContent = stuck ? '⚠️ Stuck between floors!' : `Floor: ${floorName(floor)}`;
 
   setCardClass('temp-card',     tempClass(t));
   setCardClass('smoke-card',    smokeClass(s));
   setCardClass('weight-card',   weightClass(w));
-  setCardClass('distance-card', 'card-normal');
+  setCardClass('distance-card', distClass(floor, is_moving));
 
   el.lastUpdated.textContent = `Last update: ${new Date().toLocaleTimeString()}`;
 }
