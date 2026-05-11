@@ -110,7 +110,7 @@ function pushChartPoint(row) {
 // ── Sensor card helpers ───────────────────────────────────────────────────────
 const tempClass   = t => t == null ? 'card-normal' : t > 32 ? 'card-danger'   : t > 28  ? 'card-warning'  : 'card-normal';
 const smokeClass  = s => s == null ? 'card-normal' : s > 400 ? 'card-critical' : s > 300  ? 'card-danger'   : 'card-normal';
-const weightClass = w => w == null ? 'card-normal' : w > 150 ? 'card-critical' : w > 130  ? 'card-warning'  : 'card-normal';
+const weightClass = w => w == null ? 'card-normal' : w > 270 ? 'card-critical' : w > 243  ? 'card-warning'  : 'card-normal';
 
 function setCardClass(id, cls) {
   const card = document.getElementById(id);
@@ -133,7 +133,7 @@ function updateSensorCards(row) {
 
   if (t != null) el.tempSub.textContent   = t > 32 ? '⚠️ Critically high' : t > 28 ? '⚠️ Elevated' : 'Safe range';
   if (s != null) el.smokeSub.textContent  = s > 0 ? '⚠️ Gas detected' : 'No gas';
-  if (w != null) el.weightSub.textContent = w > 150 ? '⚠️ Overloaded!'   : `${Math.round((w / 150) * 100)}% capacity`;
+  if (w != null) el.weightSub.textContent = w > 270 ? '⚠️ Overloaded!'   : `${Math.round((w / 270) * 100)}% capacity`;
   el.floorDisplay.textContent = `Floor: ${floorName(floor)}`;
 
   setCardClass('temp-card',     tempClass(t));
